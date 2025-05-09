@@ -1,0 +1,8 @@
+prefix=/home/edhitha/ros_ws/install
+
+Name: drone_ros
+Description: Description of drone_ros
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

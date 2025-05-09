@@ -1,0 +1,6 @@
+devel_space: /home/edhitha/ros_ws/devel
+install: false
+install_space: /home/edhitha/ros_ws/install
+profile: default
+source_space: /home/edhitha/ros_ws/src
+workspace: /home/edhitha/ros_ws
