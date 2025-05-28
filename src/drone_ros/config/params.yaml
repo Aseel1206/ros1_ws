@@ -1,0 +1,17 @@
+# config/params.yaml
+
+# params.yaml
+# MAVROS connection type: "usb" or "udp"
+mavros_connection_type: "usb" # Change to "udp" for UDP connection
+
+# For USB connection (if mavros_connection_type is "usb")
+mavros_usb_port: "/dev/ttyACM0"
+mavros_usb_baudrate: 115200
+
+# For UDP connection (if mavros_connection_type is "udp")
+mavros_udp_local_port: 14550
+mavros_udp_target_ip: "127.0.0.1" # Typically the IP of the GCS or another machine
+mavros_udp_target_port: 14551
+
+start_waypoint_index: 1 # Set this to the waypoint index where you want to START capturing. set -1 to start without waypoint
+stop_waypoint_index: 8  # Set this to the waypoint index where you want to STOP capturing.

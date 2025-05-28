@@ -1,0 +1,20 @@
+
+    <arg name="mavros_conn_type" value="$(param mavros_connection_type)" />
+
+    <group if="$(eval mavros_conn_type == 'usb')">
+        <node pkg="mavros" type="mavros_node" name="mavros" output="screen" respawn="true">
+            <param name="fcu_url" value="serial://$(param mavros_usb_port):$(param mavros_usb_baudrate)" />
+            <param name="target_system_id" value="1" />
+            <param name="target_component_id" value="1" />
+        </node>
+    </group>
+
+    <group if="$(eval mavros_conn_type == 'udp')">
+        <node pkg="mavros" type="mavros_node" name="mavros" output="screen" respawn="true">
+            <param name="fcu_url" value="udp://$(param mavros_udp_local_port)@$(param mavros_udp_target_ip):$(param mavros_udp_target_port)" />
+            <param name="target_system_id" value="1" />
+            <param name="target_component_id" value="1" />
+        </node>
+    </group>
+
+</launch>

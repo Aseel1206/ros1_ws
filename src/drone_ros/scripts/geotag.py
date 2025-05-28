@@ -24,23 +24,20 @@ class Geotagger:
 
         self.save_dir = '/home/edhitha/geotag_output'
         if not os.path.exists(self.save_dir):
-	    os.makedirs(self.save_dir)
+            os.makedirs(self.save_dir)
 
         self.csv_file = os.path.join(self.save_dir, 'geotag_data.csv')
         with open(self.csv_file, 'wb') as f:
-	    writer = csv.writer(f, lineterminator='\n')
-	    writer.writerow(['timestamp', 'latitude', 'longitude', 'altitude', 'orientation_w', 'yaw', 'filename'])
+            writer = csv.writer(f)
+            writer.writerow(['timestamp', 'latitude', 'longitude', 'altitude', 'orientation_w', 'yaw', 'filename'])
 
-
-        #rospy.Subscriber('/usb_cam/image_raw', Image, self.image_callback)
-	rospy.Subscriber('/camera/timestamps', Image, self.image_callback)
+        rospy.Subscriber('/camera/timestamps', String, self.image_callback)
         rospy.Subscriber('/mavros/imu/data', Imu, self.imu_callback)
         rospy.Subscriber('/mavros/global_position/global', NavSatFix, self.gps_callback)
-	self.status_pub = rospy.Publisher('/geotagger/status', String, queue_size=10, latch=True)
-	#rospy.Timer(rospy.Duration(1), self.publish_status)
+        self.status_pub = rospy.Publisher('/geotagger/status', String, queue_size=10, latch=True)
 
         rospy.loginfo('ROS 1 Geotagger node started.')
-	self.status_pub.publish("active")
+        self.status_pub.publish("active")
 
     def gps_callback(self, msg):
         timestamp = msg.header.stamp.to_sec()
@@ -51,29 +48,28 @@ class Geotagger:
         self.imu_buffer.append((timestamp, msg))
 
     def image_callback(self, msg):
-        image_time = msg.header.stamp.to_sec()
-        rospy.loginfo("Image time: {}".format(image_time))
-        rospy.loginfo("Buffer times: {}".format([t for t, _ in self.gps_buffer]))
-
-        if len(self.image_buffer) > 0:
+        try:
+            timestamp_str, filename = msg.data.split(',')
+            image_time = float(timestamp_str)
+            self.image_buffer.clear()
+            self.image_buffer.append((image_time, filename))
+            rospy.loginfo("Received image metadata: time={}, file={}".format(image_time, filename))
             self.process_images()
-
-        self.image_buffer.clear()
-        self.image_buffer.append((image_time, msg))
+        except Exception as e:
+            rospy.logerr("Failed to parse image metadata: {}".format(e))
 
     def process_images(self):
-	
         if len(self.image_buffer) == 0:
             return
 
-        for image_time, image_msg in self.image_buffer:
-            rospy.loginfo("Processing image with timestamp: {}".format(image_time))
+        for image_time, image_filename in self.image_buffer:
+            rospy.loginfo("Processing metadata with timestamp: {}".format(image_time))
 
             gps_interp = self.interpolate(self.gps_buffer, image_time, ['latitude', 'longitude', 'altitude'])
             quat = self.interpolate_quaternion(self.imu_buffer, image_time)
 
             if gps_interp is None or quat is None:
-		self.status_pub.publish("interpolation failed")
+                self.status_pub.publish("interpolation failed")
                 rospy.logwarn("Interpolation failed, skipping frame.")
                 continue
 
@@ -82,32 +78,28 @@ class Geotagger:
             alt = gps_interp['altitude']
 
             yaw = self.extract_yaw_from_quaternion(quat)
-            filtered_yaw = self.kf_yaw.update(yaw)
+            # self.kf_yaw.update() is missing in your code. If unused, remove this.
+            filtered_yaw = yaw  # Placeholder
 
             try:
-                cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
-                image_filename = os.path.join(self.save_dir, 'image_{:05d}.jpg'.format(self.image_count))
-                cv2.imwrite(image_filename, cv_image)
+                with open(self.csv_file, 'ab') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([
+                        image_time,
+                        lat,
+                        lon,
+                        alt,
+                        quat[3],  # orientation_w
+                        filtered_yaw,
+                        image_filename
+                    ])
 
-                with open(self.csv_file, 'a') as f:
-		    writer = csv.writer(f, lineterminator='\n')
-		    writer.writerow([
-			image_time,
-			lat,
-			lon,
-			alt,
-			quat[3],  # orientation_w (w)
-			filtered_yaw,
-			os.path.basename(image_filename)
-		    ])
-
-
-                rospy.loginfo("Saved image and data: {}".format(image_filename))
-		self.status_pub.publish("geotagging")
+                rospy.loginfo("Saved metadata for file: {}".format(image_filename))
+                self.status_pub.publish("geotagging")
                 self.image_count += 1
 
             except Exception as e:
-                rospy.logerr("Image processing failed: {}".format(e))
+                rospy.logerr("Failed to save metadata: {}".format(e))
 
     def interpolate(self, buffer, target_time, fields):
         lower = None
@@ -127,9 +119,9 @@ class Geotagger:
             lower_value = getattr(lower[1], field)
             upper_value = getattr(upper[1], field)
             time_diff = upper[0] - lower[0]
-	    if time_diff == 0:
-		    rospy.logwarn("Zero time difference in interpolation.")
-		    return None
+            if time_diff == 0:
+                rospy.logwarn("Zero time difference in interpolation.")
+                return None
             weight_upper = (target_time - lower[0]) / time_diff
             weight_lower = 1 - weight_upper
             interpolated_data[field] = lower_value * weight_lower + upper_value * weight_upper
@@ -152,12 +144,14 @@ class Geotagger:
         q_lower = lower[1].orientation
         q_upper = upper[1].orientation
         time_diff = upper[0] - lower[0]
+        if time_diff == 0:
+            return None
         weight_upper = (target_time - lower[0]) / time_diff
         weight_lower = 1 - weight_upper
 
         q_lower_array = self.quaternion_to_array(q_lower)
         q_upper_array = self.quaternion_to_array(q_upper)
-        q_interp = q_lower_array * weight_lower + q_upper_array * weight_upper
+        q_interp = np.multiply(q_lower_array, weight_lower) + np.multiply(q_upper_array, weight_upper)
 
         return q_interp
 

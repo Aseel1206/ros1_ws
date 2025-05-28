@@ -1,0 +1,22 @@
+<launch>
+  <rosparam command="load" file="$(find drone_ros)/config/params.yaml" />
+  <arg name="usb_port" default="/dev/ttyACM0" />
+  <arg name="usb_baud" default="115200" />
+
+  <node pkg="mavros" type="mavros_node" name="mavros" output="log" respawn="true" respawn_delay="5">
+    <param name="fcu_url" value="serial://$(arg usb_port):$(arg usb_baud)" />
+    <param name="target_system_id" value="1" />
+    <param name="target_component_id" value="1" />
+  </node>
+  <node pkg="drone_ros" type="geotag.py" name="image_geotag" output="log" respawn="true" respawn_delay="5">
+    <!-- Optional: Parameters or remappings -->
+  </node>
+  <node pkg="drone_ros" type="status_monitor.py" name="status_monitor" output="screen" respawn="true" respawn_delay="5">
+    <!-- Optional: Parameters or remappings -->
+  </node>
+  <node pkg="drone_ros" type="csi_capture.py" name="camera_capture_node" output="screen" respawn="true" respawn_delay="5">
+  </node>
+
+</launch>
+
+
