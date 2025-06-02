@@ -88,7 +88,7 @@ This ROS node captures frames from a GStreamer-based camera pipeline, saves them
 
 ---
 
-### 🛠️ Dependencies
+###  Dependencies
 
 #### Python Packages
 
@@ -128,7 +128,7 @@ This ROS node captures frames from a GStreamer-based camera pipeline, saves them
 
 This ROS 1 node synchronizes GPS, IMU, and camera image data to perform geotagging — embedding geographic and orientation metadata into a CSV file for each camera frame.
 
-### 🛰️ Features
+###  Features
 
 - Subscribes to:
   - `/camera/timestamps` (image timestamp and filename as `String`)
