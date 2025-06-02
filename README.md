@@ -141,7 +141,7 @@ This ROS 1 node synchronizes GPS, IMU, and camera image data to perform geotaggi
 
 ---
 
-### 📂 Output
+###  Output
 
 Geotagged data will be saved to:
 - /home/edhitha/geotag_output/geotag_data.csv
@@ -153,7 +153,7 @@ Each row of the CSV includes:
   
 ---
 
-### 🧰 Dependencies
+###  Dependencies
 
 Ensure the following packages are installed:
 
