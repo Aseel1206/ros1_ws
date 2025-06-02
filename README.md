@@ -197,4 +197,16 @@ Ensure the following packages are installed:
 
 ---
 
+# Troubleshooting
+
+## illegal Core Exception
+- check if ```pyton``` returns python2 in terminal. If not set python to python2.
+
+## Permission Denied when using usb connection for fc
+```
+sudo usermod -a -G dialout $USER
+```
+
+## No gps and imu data from fc though usb
+- In Mission planner, Set usb, baud rate, gps data frequency, etc
 
